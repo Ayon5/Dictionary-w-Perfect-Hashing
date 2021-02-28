@@ -17,16 +17,18 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
+/* Secondary Hash Table */
 class slot {
     int a, b, n, m, p;
-    ArrayList <String> keys, vals;
-    private String[] map, mpkey;
+    ArrayList <String> keys, vals;  // keys and their values
+    private String[] map, mpkey;    // hashed values and their respective keys
 
     slot () {
         keys = new ArrayList<>();
         vals = new ArrayList<>();
     }
 
+    /* Secondary Hash Function */
     private int hash(String key) {
         long res = 0;
         for(char ch : key.toCharArray()) {
@@ -36,6 +38,7 @@ class slot {
         return (int) (res % m);
     }
 
+    /* Collision checker for current assignments of a, b, p */
     boolean Collision() {
         map = new String[m];
         mpkey = new String[m];
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button searchButton;
 
     private static int m = 100005, a, b, prime;
+    private static final int attempts = 500;
     private slot[] holes;
 
     @Override
@@ -77,9 +81,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         searchButton.setOnClickListener(this);
         holes = new slot[m];
         for (int i = 0; i < m; i++) holes[i] = new slot();
+
+        /* Randomized Universal Hashing values for Primary Hash Function */
         prime = getRandPrime(m + 10, m + 1000);
         a = ThreadLocalRandom.current().nextInt(1, prime - 1);
         b = ThreadLocalRandom.current().nextInt(0, prime - 1);
+
         try {
             dicData();
         } catch (IOException e) {
@@ -94,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return true;
     }
 
+    /* returns a random prime number within a range */
     private int getRandPrime(int l, int r) {
         int prime;
         do {
@@ -102,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return prime;
     }
 
+    /* Primary Hash Function */
     private int priHash(String key) {
         long res = 0;
         for (char ch : key.toCharArray()) {
@@ -118,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         holes[index].vals.add(ban);
     }
 
+    /* performs Universal Hashing for each Secondary Hash Table */
     @SuppressLint("Assert")
     private void secHash() {
         for (slot S : holes) {
@@ -126,18 +136,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             S.m = S.n * S.n;
             int c = 0;
             do {
+                /* Randomized Universal Hashing values for Secondary Hash Function */
                 S.p = getRandPrime(m + 500, m + 1000);
                 S.a = ThreadLocalRandom.current().nextInt(1, S.p - 1);
                 S.b = ThreadLocalRandom.current().nextInt(0, S.p - 1);
                 c++;
-            } while (S.Collision() && c < 500);
-            if (c >= 500) {
-                for(String str : S.keys) System.out.println(str);
+            } while (S.Collision() && c < attempts);
+            if (c >= attempts) {
+                /*
+                * exception thrown after certain amount of attempts at secondary hashing
+                * extremely unlikely to happen for data-set without duplicates.
+                */
                 throw new AssertionError();
             }
         }
     }
 
+    /* reads file for data and adds/assigns each word to hash-table */
     private void dicData() throws IOException {
         Context mContext = MainActivity.this;
         InputStream IS = mContext.getAssets().open("DicDB.txt");
